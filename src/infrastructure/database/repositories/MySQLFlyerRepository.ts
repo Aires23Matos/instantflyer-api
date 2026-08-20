@@ -1,25 +1,32 @@
-import { Flyer } from '../../../domain/entities/Flyer';
-import { FlyerRepository } from '../../../domain/repositories/FlyerRepository';
-import { db } from '../config/knex';
+import { Flyer } from "../../../domain/entities/Flyer";
+import { FlyerRepository } from "../../../domain/repositories/FlyerRepository";
+import { db } from "../config/knex";
+import { v4 as uuidv4 } from "uuid";
 
 export class MySQLFlyerRepository implements FlyerRepository {
-  private table = 'flyers';
+  private table = "flyers";
 
   async create(flyer: Flyer): Promise<Flyer> {
-    const [id] = await db(this.table).insert({
-      id: flyer.id,
+    // Garante que o ID seja uma string UUID
+    const id = flyer.id || uuidv4();
+
+    await db(this.table).insert({
+      id: id,
       title: flyer.title,
       description: flyer.description,
       file_name: flyer.fileName,
       file_type: flyer.fileType,
       file_data: flyer.fileData,
-      notification_days: flyer.notificationDays ? JSON.stringify(flyer.notificationDays) : null,
+      notification_days: flyer.notificationDays
+        ? JSON.stringify(flyer.notificationDays)
+        : null,
       created_at: db.fn.now(),
       updated_at: db.fn.now(),
     });
 
+    // Busca o registro recém-criado pelo ID que geramos
     const created = await this.findById(id);
-    if (!created) throw new Error('Falha ao criar flyer');
+    if (!created) throw new Error("Falha ao criar flyer");
     return created;
   }
 
@@ -29,8 +36,13 @@ export class MySQLFlyerRepository implements FlyerRepository {
     return this.toEntity(row);
   }
 
-  async findFileDataById(id: string): Promise<{ fileData: Buffer; fileType: string; fileName: string } | null> {
-    const row = await db(this.table).where({ id }).select('file_data', 'file_type', 'file_name').first();
+  async findFileDataById(
+    id: string,
+  ): Promise<{ fileData: Buffer; fileType: string; fileName: string } | null> {
+    const row = await db(this.table)
+      .where({ id })
+      .select("file_data", "file_type", "file_name")
+      .first();
     if (!row) return null;
     return {
       fileData: row.file_data,
@@ -39,15 +51,21 @@ export class MySQLFlyerRepository implements FlyerRepository {
     };
   }
 
-  async update(id: string, data: Partial<Omit<Flyer, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Flyer | null> {
+  async update(
+    id: string,
+    data: Partial<Omit<Flyer, "id" | "createdAt" | "updatedAt">>,
+  ): Promise<Flyer | null> {
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
+    if (data.description !== undefined)
+      updateData.description = data.description;
     if (data.fileName !== undefined) updateData.file_name = data.fileName;
     if (data.fileType !== undefined) updateData.file_type = data.fileType;
     if (data.fileData !== undefined) updateData.file_data = data.fileData;
     if (data.notificationDays !== undefined) {
-      updateData.notification_days = data.notificationDays ? JSON.stringify(data.notificationDays) : null;
+      updateData.notification_days = data.notificationDays
+        ? JSON.stringify(data.notificationDays)
+        : null;
     }
     updateData.updated_at = db.fn.now();
 
@@ -68,7 +86,9 @@ export class MySQLFlyerRepository implements FlyerRepository {
       fileName: row.file_name,
       fileType: row.file_type,
       fileData: row.file_data,
-      notificationDays: row.notification_days ? JSON.parse(row.notification_days) : null,
+      notificationDays: row.notification_days
+        ? JSON.parse(row.notification_days)
+        : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });
