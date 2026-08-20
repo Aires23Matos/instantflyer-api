@@ -15,22 +15,39 @@ export class FlyerController {
     private deleteFlyer: DeleteFlyerUseCase
   ) {}
 
+  /**
+   * Helper para extrair o ID dos parâmetros da rota
+   * Garante que o ID seja uma string, lançando erro se for um array ou não existir
+   */
+  private extractId(params: any): string {
+    const id = params.id;
+    if (!id) throw new AppError('ID não fornecido', 400);
+    if (Array.isArray(id)) {
+      if (id.length === 0) throw new AppError('ID vazio', 400);
+      return id[0]; // pega o primeiro se for array
+    }
+    return id;
+  }
+
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const { title, description, notificationDays } = req.body;
       const file = req.file;
-      if (!file) throw new AppError('Arquivo é obrigatório', 400);
+      if (!file) {
+        throw new AppError('Arquivo é obrigatório', 400);
+      }
 
-      // parse notificationDays (JSON string)
-      let days: number[] | undefined = undefined;
-      if (notificationDays) {
+      // Valida e converte notificationDays
+      let days: number[] | null = null;
+      if (notificationDays !== undefined && notificationDays !== null && notificationDays !== '') {
         try {
-          days = JSON.parse(notificationDays);
-          if (!Array.isArray(days) || !days.every(d => Number.isInteger(d))) {
-            throw new Error();
+          const parsed = typeof notificationDays === 'string' ? JSON.parse(notificationDays) : notificationDays;
+          if (!Array.isArray(parsed) || !parsed.every((d: any) => Number.isInteger(d) && d >= 0)) {
+            throw new Error('Formato inválido');
           }
+          days = parsed;
         } catch {
-          throw new AppError('notificationDays deve ser um array JSON de números', 400);
+          throw new AppError('notificationDays deve ser um array JSON de números inteiros não negativos', 400);
         }
       }
 
@@ -40,7 +57,7 @@ export class FlyerController {
         fileName: file.originalname,
         fileType: file.mimetype.startsWith('image/') ? 'image' : 'pdf',
         fileData: file.buffer,
-        notificationDays: days || null,
+        notificationDays: days,
       });
 
       res.status(201).json(flyerDTO);
@@ -51,7 +68,7 @@ export class FlyerController {
 
   async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = this.extractId(req.params);
       const flyer = await this.getFlyer.execute(id);
       res.json(flyer);
     } catch (error) {
@@ -61,7 +78,7 @@ export class FlyerController {
 
   async getFile(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = this.extractId(req.params);
       const { fileData, fileType, fileName } = await this.getFlyerFile.execute(id);
       const contentType = fileType === 'pdf' ? 'application/pdf' : 'image/jpeg';
       res.setHeader('Content-Type', contentType);
@@ -74,36 +91,37 @@ export class FlyerController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = this.extractId(req.params);
       const { title, description, notificationDays } = req.body;
       const file = req.file;
 
-      let days: number[] | null | undefined = undefined;
-      if (notificationDays !== undefined) {
-        if (notificationDays === null || notificationDays === 'null') {
-          days = null;
-        } else {
-          try {
-            const parsed = JSON.parse(notificationDays);
-            if (!Array.isArray(parsed) || !parsed.every(d => Number.isInteger(d))) {
-              throw new Error();
-            }
-            days = parsed;
-          } catch {
-            throw new AppError('notificationDays deve ser um array JSON de números ou null', 400);
-          }
-        }
-      }
-
+      // Monta objeto de atualização
       const updateData: any = {};
       if (title !== undefined) updateData.title = title;
       if (description !== undefined) updateData.description = description || null;
+
       if (file) {
         updateData.fileName = file.originalname;
         updateData.fileType = file.mimetype.startsWith('image/') ? 'image' : 'pdf';
         updateData.fileData = file.buffer;
       }
-      if (days !== undefined) updateData.notificationDays = days;
+
+      // Trata notificationDays: pode ser null, array ou undefined (não alterar)
+      if (notificationDays !== undefined) {
+        if (notificationDays === null || notificationDays === 'null' || notificationDays === '') {
+          updateData.notificationDays = null;
+        } else {
+          try {
+            const parsed = typeof notificationDays === 'string' ? JSON.parse(notificationDays) : notificationDays;
+            if (!Array.isArray(parsed) || !parsed.every((d: any) => Number.isInteger(d) && d >= 0)) {
+              throw new Error('Formato inválido');
+            }
+            updateData.notificationDays = parsed;
+          } catch {
+            throw new AppError('notificationDays deve ser um array JSON de números inteiros não negativos ou null', 400);
+          }
+        }
+      }
 
       const flyerDTO = await this.updateFlyer.execute(id, updateData);
       res.json(flyerDTO);
@@ -114,7 +132,7 @@ export class FlyerController {
 
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = this.extractId(req.params);
       await this.deleteFlyer.execute(id);
       res.status(204).send();
     } catch (error) {
