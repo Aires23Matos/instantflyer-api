@@ -35,6 +35,18 @@ const controller = new FlyerController(
   deleteFlyer
 );
 
+app.get('/', (_, res) => {
+  res.status(200).json({
+    status: 'online',
+    message: 'API Flyers está rodando (arquivos no banco)',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api/flyers'
+    }
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'up', timestamp: new Date().toISOString() });
 });
