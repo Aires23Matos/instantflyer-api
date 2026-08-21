@@ -10,7 +10,7 @@ export class FlyerMapper {
       fileName: flyer.fileName,
       fileType: flyer.fileType,
       notificationDays: flyer.notificationDays,
-      fileUrl: `${baseUrl}/api/flyers/${flyer.id}/file`,
+      fileUrl: `/api/flyers/${flyer.id}/file`,
       createdAt: flyer.createdAt!,
       updatedAt: flyer.updatedAt!,
     };
