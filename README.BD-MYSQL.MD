@@ -1,7 +1,6 @@
 
 ## Script MYSQL
 ```sql
--- Adiciona a coluna file_data (LONGBLOB) à tabela existente
 ALTER TABLE flyers ADD COLUMN file_data LONGBLOB NOT NULL;
 
 -- Ou, se estiver criando do zero:
