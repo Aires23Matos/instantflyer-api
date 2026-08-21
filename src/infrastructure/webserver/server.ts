@@ -35,6 +35,10 @@ const controller = new FlyerController(
   deleteFlyer
 );
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'up', timestamp: new Date().toISOString() });
+});
+
 app.use('/api/flyers', createFlyerRoutes(controller));
 
 app.use(errorHandler);
