@@ -6,29 +6,27 @@ import { v4 as uuidv4 } from "uuid";
 export class MySQLFlyerRepository implements FlyerRepository {
   private table = "flyers";
 
-  async create(flyer: Flyer): Promise<Flyer> {
-    // Garante que o ID seja uma string UUID
-    const id = flyer.id || uuidv4();
+ async create(flyer: Flyer): Promise<Flyer> {
+  const id = flyer.id || uuidv4();
 
-    await db(this.table).insert({
-      id: id,
-      title: flyer.title,
-      description: flyer.description,
-      file_name: flyer.fileName,
-      file_type: flyer.fileType,
-      file_data: flyer.fileData,
-      notification_days: flyer.notificationDays
-        ? JSON.stringify(flyer.notificationDays)
-        : null,
-      created_at: db.fn.now(),
-      updated_at: db.fn.now(),
-    });
+  await db(this.table).insert({
+    id: id,
+    title: flyer.title,
+    description: flyer.description,
+    file_name: flyer.fileName,
+    file_type: flyer.fileType,
+    file_data: db.raw('?', [flyer.fileData]), // ← força binary
+    notification_days: flyer.notificationDays
+      ? JSON.stringify(flyer.notificationDays)
+      : null,
+    created_at: db.fn.now(),
+    updated_at: db.fn.now(),
+  });
 
-    // Busca o registro recém-criado pelo ID que geramos
-    const created = await this.findById(id);
-    if (!created) throw new Error("Falha ao criar flyer");
-    return created;
-  }
+  const created = await this.findById(id);
+  if (!created) throw new Error("Falha ao criar flyer");
+  return created;
+}
 
   async findById(id: string): Promise<Flyer | null> {
     const row = await db(this.table).where({ id }).first();
