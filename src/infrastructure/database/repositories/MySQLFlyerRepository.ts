@@ -77,18 +77,30 @@ export class MySQLFlyerRepository implements FlyerRepository {
   }
 
   private toEntity(row: any): Flyer {
-    return new Flyer({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      fileName: row.file_name,
-      fileType: row.file_type,
-      fileData: row.file_data,
-      notificationDays: row.notification_days
-        ? JSON.parse(row.notification_days)
-        : null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    });
+  let notificationDays = null;
+  if (row.notification_days) {
+    if (typeof row.notification_days === 'string') {
+      try {
+        notificationDays = JSON.parse(row.notification_days);
+      } catch {
+        notificationDays = null;
+      }
+    } else {
+      // Já é um objeto ou array (driver já parseou)
+      notificationDays = row.notification_days;
+    }
   }
+
+  return new Flyer({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    fileName: row.file_name,
+    fileType: row.file_type,
+    fileData: row.file_data,
+    notificationDays: notificationDays,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+}
 }

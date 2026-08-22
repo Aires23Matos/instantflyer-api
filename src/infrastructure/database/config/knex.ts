@@ -4,13 +4,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const dbConfig = {
-  client: process.env.DB_CLIENT || 'mysql', // 'mysql2' ou 'pg'
+  client: process.env.DB_CLIENT, // 'mysql2' ou 'pg'
   connection: {
-    host: process.env.DB_HOST || 'mysql.railway.internal',
-    port: Number(process.env.DB_PORT || '3306') ,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'lttTfzjpysirBqaOKvejvXxvaehSxnBH',
-    database: process.env.DB_NAME || 'railway',
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT) ,
+    user: process.env.DB_USER ,
+    password: process.env.DB_PASSWORD ,
+    database: process.env.DB_NAME ,
   },
   pool: { min: 2, max: 10 },
 };
